@@ -1,0 +1,24 @@
+// config.js - shared constants & runtime state
+var GLOBAL_TRAFFIC_CACHE = /* @__PURE__ */ new Map();
+var ACTIVE_CONNECTIONS_COUNT = /* @__PURE__ */ new Map();
+var GLOBAL_LAST_ACTIVE_WRITE = /* @__PURE__ */ new Map();
+var DNS_CACHE = /* @__PURE__ */ new Map();
+var DNS_CACHE_TTL = 5 * 60 * 1e3;
+var DOH_RESOLVER = "https://cloudflare-dns.com/dns-query";
+var UPSTREAM_BUNDLE_TARGET_BYTES = 16 * 1024;
+var UPSTREAM_QUEUE_MAX_BYTES = 16 * 1024 * 1024;
+var UPSTREAM_QUEUE_MAX_ITEMS = 4096;
+var DOWNSTREAM_GRAIN_BYTES = 32 * 1024;
+var DOWNSTREAM_GRAIN_TAIL_THRESHOLD = 512;
+var DOWNSTREAM_GRAIN_SILENT_MS = 1;
+var TCP_CONCURRENCY = 2;
+var PRELOAD_RACE_DIAL = true;
+var xrayStatus = { running: true, uptime: 0, startTime: Date.now() };
+var SYSTEM_STATS = {
+  cpu: { cores: 48, load: [12.5, 11.4, 11.6] },
+  ram: { used: 159.30, total: 322.69 },
+  swap: { used: 1.39, total: 223.56 },
+  storage: { used: 818.93, total: 2867.20 }
+};
+var PANEL_VERSION = "2.9.4";
+export { GLOBAL_TRAFFIC_CACHE, ACTIVE_CONNECTIONS_COUNT, GLOBAL_LAST_ACTIVE_WRITE, DNS_CACHE, DNS_CACHE_TTL, DOH_RESOLVER, UPSTREAM_BUNDLE_TARGET_BYTES, UPSTREAM_QUEUE_MAX_BYTES, UPSTREAM_QUEUE_MAX_ITEMS, DOWNSTREAM_GRAIN_BYTES, DOWNSTREAM_GRAIN_TAIL_THRESHOLD, DOWNSTREAM_GRAIN_SILENT_MS, TCP_CONCURRENCY, PRELOAD_RACE_DIAL, xrayStatus, SYSTEM_STATS, PANEL_VERSION };

@@ -1,8 +1,26 @@
--- fire.js schema (Fire Panel v3.0.0)
--- Note: fire.js also auto-creates these tables on first request (ensureSchema),
--- so running this file is optional but recommended for a clean first deploy.
+-- VoidLatency / Fire Panel schema (matches voidlatency-core.js ensureSchema)
+-- Optional: the worker also auto-creates these on first request. Idempotent.
 
--- Admins
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE,
+  uuid TEXT,
+  limit_gb REAL,
+  expiry_days INTEGER,
+  ips TEXT,
+  connection_type TEXT,
+  tls TEXT,
+  port INTEGER,
+  used_gb REAL DEFAULT 0,
+  is_active INTEGER DEFAULT 1,
+  last_active INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  fingerprint TEXT DEFAULT 'chrome',
+  config_name TEXT
+);
+
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+
 CREATE TABLE IF NOT EXISTS admins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE,
@@ -10,24 +28,18 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Settings (key/value)
-CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT
-);
-
--- Inbounds
 CREATE TABLE IF NOT EXISTS inbounds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   remark TEXT,
   enable INTEGER DEFAULT 1,
+  protocol TEXT DEFAULT 'vless',
   listen TEXT DEFAULT '',
   port INTEGER,
-  protocol TEXT DEFAULT 'vless',
-  settings TEXT DEFAULT '{}',
-  stream_settings TEXT DEFAULT '{}',
-  sniffing TEXT DEFAULT '{}',
-  tag TEXT,
+  network TEXT DEFAULT 'ws',
+  security TEXT DEFAULT 'tls',
+  path TEXT DEFAULT '/',
+  host TEXT DEFAULT '',
+  uuid TEXT,
   up INTEGER DEFAULT 0,
   down INTEGER DEFAULT 0,
   total INTEGER DEFAULT 0,
@@ -35,48 +47,28 @@ CREATE TABLE IF NOT EXISTS inbounds (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Clients (one inbound has many clients) — source of truth for the proxy
-CREATE TABLE IF NOT EXISTS clients (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  inbound_id INTEGER,
-  enable INTEGER DEFAULT 1,
-  email TEXT,
-  uuid TEXT,
-  password TEXT,
-  total_gb REAL DEFAULT 0,
-  used_gb REAL DEFAULT 0,
-  expiry_time INTEGER DEFAULT 0,
-  sub_id TEXT,
-  last_active INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Outbounds
 CREATE TABLE IF NOT EXISTS outbounds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tag TEXT UNIQUE,
   remark TEXT,
-  protocol TEXT,
-  settings TEXT DEFAULT '{}',
-  stream_settings TEXT DEFAULT '{}',
+  protocol TEXT DEFAULT 'freedom',
+  address TEXT DEFAULT '',
+  port INTEGER DEFAULT 0,
+  auth TEXT DEFAULT '',
   enable INTEGER DEFAULT 1
 );
 
--- Routing rules (send matching traffic from inbounds through an outbound)
 CREATE TABLE IF NOT EXISTS routing_rules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   enable INTEGER DEFAULT 1,
   remark TEXT,
-  inbound_tags TEXT DEFAULT '[]',
+  inbound_tag TEXT DEFAULT '',
   outbound_tag TEXT DEFAULT 'direct',
   domain TEXT DEFAULT '',
   ip TEXT DEFAULT '',
-  port TEXT DEFAULT '',
-  protocol TEXT DEFAULT '',
-  type TEXT DEFAULT 'field'
+  port TEXT DEFAULT ''
 );
 
--- Nodes (relay servers)
 CREATE TABLE IF NOT EXISTS nodes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT,
@@ -84,29 +76,11 @@ CREATE TABLE IF NOT EXISTS nodes (
   port INTEGER,
   api_port INTEGER DEFAULT 62789,
   remark TEXT,
-  enable INTEGER DEFAULT 1,
-  type TEXT DEFAULT 'xray'
+  type TEXT DEFAULT 'xray',
+  enable INTEGER DEFAULT 1
 );
 
--- Xray config (single row)
-CREATE TABLE IF NOT EXISTS xray_config (
-  id INTEGER PRIMARY KEY,
-  config TEXT DEFAULT '{}'
-);
-
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_clients_uuid ON clients(uuid);
-CREATE INDEX IF NOT EXISTS idx_clients_inbound ON clients(inbound_id);
-CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
-CREATE INDEX IF NOT EXISTS idx_inbounds_tag ON inbounds(tag);
-
--- Default outbounds
-INSERT OR IGNORE INTO outbounds (tag, remark, protocol, settings) VALUES
-  ('direct', 'Direct', 'freedom', '{"domainStrategy":"AsIs"}'),
-  ('block', 'Block', 'blackhole', '{"response":{"type":"none"}}');
-
--- Default settings
-INSERT OR IGNORE INTO settings (key, value) VALUES
-  ('proxy_ip', 'proxyip.cmliussss.net'),
-  ('theme', 'dark'),
-  ('panel_version', '3.0.0');
+INSERT OR IGNORE INTO outbounds (tag, remark, protocol) VALUES ('direct','Direct','freedom');
+INSERT OR IGNORE INTO outbounds (tag, remark, protocol) VALUES ('block','Block','blackhole');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('proxy_ip','proxyip.cmliussss.net');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('theme','dark');
