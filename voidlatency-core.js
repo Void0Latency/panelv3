@@ -3788,13 +3788,23 @@ var HTML_TEMPLATES = {
         // ============================================
         function fireEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
         function fireFb(b){if(!b||b<=0)return '0 B';var k=1024,s=['B','KB','MB','GB','TB'],i=Math.floor(Math.log(b)/Math.log(k));return (b/Math.pow(k,i)).toFixed(2)+' '+s[i];}
+        // UUID with fallback for browsers without crypto.randomUUID
+        function fireUUID(){
+            try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+            var b=new Uint8Array(16);
+            (window.crypto&&crypto.getRandomValues)?crypto.getRandomValues(b):b.forEach(function(_,i){b[i]=Math.floor(Math.random()*256);});
+            b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80;
+            var h=[].map.call(b,function(x){return ('0'+x.toString(16)).slice(-2);});
+            return h.slice(0,4).join('')+'-'+h.slice(4,6).join('')+'-'+h.slice(6,8).join('')+'-'+h.slice(8,10).join('')+'-'+h.slice(10,16).join('');
+        }
         function fireModal(html){
             var m=document.getElementById('fire-modal');
-            if(!m){m=document.createElement('div');m.id='fire-modal';m.className='fixed inset-0 z-[60] flex items-center justify-center p-4';m.style.background='rgba(0,0,0,0.7)';m.style.backdropFilter='blur(8px)';document.body.appendChild(m);}
-            m.innerHTML='<div class="glass rounded-3xl p-5 w-full max-w-lg" style="max-height:90vh;overflow-y:auto">'+html+'</div>';
-            m.style.display='flex';
+            if(!m){m=document.createElement('div');m.id='fire-modal';document.body.appendChild(m);}
+            m.setAttribute('style','position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);');
+            m.innerHTML='<div class="glass rounded-3xl p-5 w-full" style="max-width:32rem;max-height:90vh;overflow-y:auto;background:#12121c;border:1px solid rgba(255,255,255,0.08)">'+html+'</div>';
+            m.onclick=function(ev){ if(ev.target===m) fireCloseModal(); };
         }
-        function fireCloseModal(){var m=document.getElementById('fire-modal');if(m){m.style.display='none';m.innerHTML='';}}
+        function fireCloseModal(){var m=document.getElementById('fire-modal');if(m){m.style.display='none';m.innerHTML='';m.onclick=null;}}
         function fireField(label,inner){return '<div class="mb-3"><label class="block text-zinc-300 text-xs font-semibold mb-1.5 uppercase tracking-wider">'+label+'</label>'+inner+'</div>';}
         function fireOpts(arr,sel){return arr.map(function(o){return '<option value="'+o+'" '+(o===sel?'selected':'')+'>'+o+'</option>';}).join('');}
         function fireInput(id,val,ph,type){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+fireEsc(val||'')+'" placeholder="'+(ph||'')+'" class="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition">';}
@@ -3837,7 +3847,7 @@ var HTML_TEMPLATES = {
             '<div class="flex gap-2 mt-4"><button onclick="fireCloseModal()" class="flex-1 py-3 bg-white/5 text-zinc-400 rounded-xl text-sm">Cancel</button><button onclick="fireSaveInbound('+(id||0)+')" class="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl text-sm">Save</button></div>');
         }
         async function fireSaveInbound(id){
-            var body={remark:document.getElementById('f-ib-remark').value,protocol:document.getElementById('f-ib-proto').value,port:document.getElementById('f-ib-port').value,network:document.getElementById('f-ib-net').value,security:document.getElementById('f-ib-sec').value,path:document.getElementById('f-ib-path').value,host:document.getElementById('f-ib-host').value,uuid:document.getElementById('f-ib-uuid').value||crypto.randomUUID(),total:document.getElementById('f-ib-total').value};
+            var body={remark:document.getElementById('f-ib-remark').value,protocol:document.getElementById('f-ib-proto').value,port:parseInt(document.getElementById('f-ib-port').value)||443,network:document.getElementById('f-ib-net').value,security:document.getElementById('f-ib-sec').value,path:document.getElementById('f-ib-path').value,host:document.getElementById('f-ib-host').value,uuid:document.getElementById('f-ib-uuid').value||fireUUID(),total:document.getElementById('f-ib-total').value};
             var r=await fetch(id?'/api/inbounds/'+id:'/api/inbounds',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
             if(r.ok){fireCloseModal();fireLoadInbounds();}else alert('❌ Save failed');
         }
