@@ -66,20 +66,15 @@ export default {
                 const dbUuid = dbData.result.uuid;
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // 4. Fetch all modules + schema from GitHub (panelv3)
+                // 4. Fetch code + schema from GitHub (panelv3) - single-file worker
                 const baseUrl = "https://raw.githubusercontent.com/Void0Latency/panelv3/main/";
-                // voidlatency-core.js MUST be first (it is the entry / main_module)
-                const moduleFiles = ["voidlatency-core.js", "config.js", "db.js", "proxy.js", "html.js"];
-                const fetched = await Promise.all(moduleFiles.map(function(name){ return fetch(baseUrl + name + "?t=" + Date.now()); }));
-                const moduleCode = {};
-                for (let i = 0; i < moduleFiles.length; i++) {
-                    if (!fetched[i].ok) throw new Error("❌ دریافت فایل " + moduleFiles[i] + " از GitHub ناموفق (" + fetched[i].status + ").");
-                    moduleCode[moduleFiles[i]] = await fetched[i].text();
-                }
+                const coreRes = await fetch(baseUrl + "voidlatency-core.js?t=" + Date.now());
+                if (!coreRes.ok) throw new Error("❌ دریافت کد پنل از GitHub ناموفق (" + coreRes.status + ").");
+                const coreCode = await coreRes.text();
                 const schemaRes = await fetch(baseUrl + "schema.sql?t=" + Date.now());
                 const schemaCode = schemaRes.ok ? await schemaRes.text() : "";
 
-                // 5. Deploy Worker (multi-module)
+                // 5. Deploy Worker
                 const metadata = {
                     main_module: "voidlatency-core.js",
                     compatibility_date: "2024-12-18",
@@ -87,9 +82,7 @@ export default {
                 };
                 const formData = new FormData();
                 formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-                for (const name of moduleFiles) {
-                    formData.append(name, new Blob([moduleCode[name]], { type: "application/javascript+module" }), name);
-                }
+                formData.append("voidlatency-core.js", new Blob([coreCode], { type: "application/javascript+module" }), "voidlatency-core.js");
 
                 const deployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`, {
                     method: 'PUT',
@@ -126,21 +119,31 @@ export default {
                 const adminPassword = generatePassword();
                 const finalUrl = `https://${workerName}.${devSub}.workers.dev`;
 
-                // The new worker takes a few seconds to go live; retry the setup call.
+                // The new worker takes a few seconds to go live; retry.
+                // This panel uses /api/setup-password (panel password) + /api/admin/create.
                 let setupOk = false;
-                for (let i = 0; i < 8; i++) {
-                    await new Promise(r => setTimeout(r, 2000));
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(r => setTimeout(r, 2500));
                     try {
-                        const su = await fetch(finalUrl + "/api/setup", {
+                        // 1) set the panel password (used as login fallback)
+                        const su = await fetch(finalUrl + "/api/setup-password", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username: adminUsername, password: adminPassword })
+                            body: JSON.stringify({ password: adminPassword })
                         });
-                        if (su.ok) {
-                            const sd = await su.json().catch(() => ({}));
-                            if (sd.success) { setupOk = true; break; }
-                            // Already set up on a previous attempt that landed
-                            if (sd.error && /already/i.test(sd.error)) { setupOk = true; break; }
+                        const sd = await su.json().catch(() => ({}));
+                        if (su.ok && sd.success) { setupOk = true; }
+                        else if (sd.error && /already/i.test(sd.error)) { setupOk = true; }
+                        // 2) also create a named admin user "admin" (best-effort)
+                        if (setupOk) {
+                            try {
+                                await fetch(finalUrl + "/api/admin/create", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ username: adminUsername, password: adminPassword })
+                                });
+                            } catch (e) {}
+                            break;
                         }
                     } catch (e) { /* not live yet, retry */ }
                 }
