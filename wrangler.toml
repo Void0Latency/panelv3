@@ -16,6 +16,3 @@ vars = { ENVIRONMENT = "production" }
 [observability]
 enabled = true
 head_sampling_rate = 1
-
-[logging]
-enabled = true

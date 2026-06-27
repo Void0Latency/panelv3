@@ -45,34 +45,56 @@ var SYS_BASE = {
 // ============================================
 var fire_default = {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // WebSocket upgrade => VLESS proxy (any path) - handled before DB so proxy works even if panel DB hiccups
+    const upgradeHeader = (request.headers.get("Upgrade") || "").toLowerCase();
+    if (upgradeHeader === "websocket") {
+      try {
+        return await handleWebSocket(request, env, ctx);
+      } catch (e) {
+        return new Response("ws error", { status: 500 });
+      }
+    }
+
+    // Hard guard: D1 binding must exist for everything below
+    if (!env || !env.VL_DB) {
+      if (url.pathname.startsWith("/api/")) {
+        return json({ error: "D1 database not bound. Set 'database_id' in wrangler.toml and run: wrangler d1 create voidlatency-db" }, 503);
+      }
+      // Still serve the panel UI so the user sees something useful
+      if (!url.pathname.startsWith("/sub/") && !url.pathname.startsWith("/feed/") && !url.pathname.startsWith("/status/")) {
+        return new Response(HTML_PANEL, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+      }
+      return new Response("Database not configured", { status: 503 });
+    }
+
     try {
       await DbService.ensureSchema(env.VL_DB);
       await loadAdmins(env);
     } catch (e) {}
-    const url = new URL(request.url);
 
-    // WebSocket upgrade => VLESS proxy (any path)
-    const upgradeHeader = (request.headers.get("Upgrade") || "").toLowerCase();
-    if (upgradeHeader === "websocket") {
-      return await handleWebSocket(request, env, ctx);
+    try {
+      if (url.pathname.startsWith("/sub/") || url.pathname.startsWith("/feed/")) {
+        return await handleSubscription(url, env);
+      }
+      if (url.pathname.startsWith("/api/")) {
+        return await handleApi(request, url, env, ctx);
+      }
+      if (url.pathname.startsWith("/status/")) {
+        return await handleUserStatus(url, env);
+      }
+      // Default: serve the panel SPA
+      return new Response(HTML_PANEL, {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    } catch (e) {
+      // Never throw a raw 1101 - surface the real error
+      if (url.pathname.startsWith("/api/")) {
+        return json({ error: "Server error: " + (e && e.message ? e.message : String(e)) }, 500);
+      }
+      return new Response("Server error: " + (e && e.message ? e.message : String(e)), { status: 500 });
     }
-
-    if (url.pathname.startsWith("/sub/") || url.pathname.startsWith("/feed/")) {
-      return await handleSubscription(url, env);
-    }
-
-    if (url.pathname.startsWith("/api/")) {
-      return await handleApi(request, url, env, ctx);
-    }
-
-    if (url.pathname.startsWith("/status/")) {
-      return await handleUserStatus(url, env);
-    }
-
-    // Default: serve the panel SPA
-    return new Response(HTML_PANEL, {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
-    });
   }
 };
 export default fire_default;
