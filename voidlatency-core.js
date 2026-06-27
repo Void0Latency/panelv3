@@ -26,7 +26,7 @@ var DOWNSTREAM_GRAIN_SILENT_MS = 1;
 var TCP_CONCURRENCY = 2;
 var PRELOAD_RACE_DIAL = true;
 
-var PANEL_VERSION = "3.0.0";
+var PANEL_VERSION = "3.0.1";
 var XRAY_VERSION = "v26.4.25";
 var xrayStatus = { running: true, startTime: Date.now() };
 var ADMINS = [];
@@ -1729,8 +1729,8 @@ function renderOverview(){
     '<button onclick="navigate(\'inbounds\')" title="Inbounds">&#9776;</button>'+
     '<button onclick="navigate(\'routing\')" title="Routing">&#8645;</button>'+
     '<button onclick="navigate(\'nodes\')" title="Nodes">&#128421;</button></div></div>'+
-  '<div class="card"><div class="flex"><span class="fw-bold">Fire Panel</span><span class="badge badge-orange ml-1">v3.0.0</span></div>'+
-    '<div class="badge-row mt-2"><span class="badge badge-outline-green">v3.0.0</span><span class="badge badge-outline-green">@VoidLatency</span><span class="badge badge-outline-purple">Documentation</span></div></div>'+
+  '<div class="card"><div class="flex"><span class="fw-bold">Fire Panel</span><span class="badge badge-orange ml-1">v3.0.1</span></div>'+
+    '<div class="badge-row mt-2"><span class="badge badge-outline-green">v3.0.1</span><span class="badge badge-outline-green">@VoidLatency</span><span class="badge badge-outline-purple">Documentation</span></div></div>'+
   '<div class="card"><div class="fw-bold">Uptime</div><div class="card-divider"></div><div class="badge-row"><span class="badge badge-outline-green" id="xray-uptime">Xray: --</span><span class="badge badge-outline-green" id="os-uptime">OS: --</span></div></div>'+
   '<div class="card"><div class="fw-bold">System Load</div><div class="card-divider"></div><span class="badge badge-outline-green" id="sys-load">-- | -- | --</span></div>'+
   '<div class="card"><div class="fw-bold">Usage</div><div class="card-divider"></div><div class="badge-row"><span class="badge badge-outline-green" id="xray-ram">RAM: --</span><span class="badge badge-outline-green" id="xray-threads">Threads: --</span></div></div>'+
