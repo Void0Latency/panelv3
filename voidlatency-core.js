@@ -97,7 +97,6 @@ var fire_default = {
     }
   }
 };
-export default fire_default;
 
 // ============================================
 // ADMIN LOADING
@@ -2218,3 +2217,7 @@ checkAuth();
 </script>
 </body>
 </html>`;
+
+export {
+  fire_default as default
+};
