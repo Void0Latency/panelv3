@@ -160,12 +160,7 @@ INSERT OR IGNORE INTO outbounds (name, protocol, settings, tag, is_active) VALUE
   ('Direct', 'freedom', '{"domainStrategy":"AsIs"}', 'direct', 1),
   ('Block', 'blackhole', '{"response":{"type":"none"}}', 'block', 1);
 
--- Default inbound (sample)
-INSERT OR IGNORE INTO inbounds (name, uuid, protocol, port, path, host, is_active, limit_gb, expiry_days) 
-SELECT 'Default', '11111111-1111-1111-1111-111111111111', 'vless', 443, '/', 'example.com', 1, NULL, NULL
+-- Sample inbound (will be used as default)
+INSERT OR IGNORE INTO inbounds (name, uuid, protocol, port, path, host, is_active) 
+SELECT 'Default', '11111111-1111-1111-1111-111111111111', 'vless', 443, '/', 'example.com', 1
 WHERE NOT EXISTS (SELECT 1 FROM inbounds WHERE name = 'Default');
-
--- Sample admin (password: admin123) - will be replaced on first setup
-INSERT OR IGNORE INTO admins (username, password_hash, role) 
-VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin');
--- Note: This is SHA-256 of "admin123" - user should change on first login
