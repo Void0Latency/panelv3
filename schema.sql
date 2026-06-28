@@ -1,18 +1,21 @@
 -- ============================================
--- VoidLatency Panel v3.4.1 - Complete Schema
+-- VOIDLATENCY PANEL v3.4.1 - FULL DATABASE
 -- ============================================
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
+-- ============================================
+-- USERS TABLE - Main user accounts
+-- ============================================
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE,
-  uuid TEXT,
-  limit_gb REAL,
-  expiry_days INTEGER,
+  username TEXT UNIQUE NOT NULL,
+  uuid TEXT NOT NULL,
+  limit_gb REAL DEFAULT 0,
+  expiry_days INTEGER DEFAULT 30,
   ips TEXT,
-  connection_type TEXT,
-  tls TEXT,
-  port TEXT,
+  connection_type TEXT DEFAULT 'vless',
+  tls TEXT DEFAULT 'tls',
+  port TEXT DEFAULT '443',
   used_gb REAL DEFAULT 0,
   is_active INTEGER DEFAULT 1,
   last_active INTEGER,
@@ -24,130 +27,132 @@ CREATE TABLE IF NOT EXISTS users (
   inbound_id INTEGER DEFAULT 0
 );
 
--- Inbounds table
-CREATE TABLE IF NOT EXISTS inbounds (
+-- ============================================
+-- INBOUNDS TABLE - VLESS tunnels
+-- ============================================
+DROP TABLE IF EXISTS inbounds;
+CREATE TABLE inbounds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  uuid TEXT,
-  protocol TEXT,
-  port INTEGER,
-  path TEXT,
-  host TEXT,
+  name TEXT NOT NULL,
+  uuid TEXT NOT NULL,
+  protocol TEXT DEFAULT 'vless',
+  port INTEGER DEFAULT 443,
+  path TEXT DEFAULT '/',
+  host TEXT DEFAULT '',
   is_active INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  outbound_tag TEXT,
+  outbound_tag TEXT DEFAULT '',
   routing_rule_id INTEGER DEFAULT 0,
-  limit_gb REAL,
-  expiry_days INTEGER,
+  limit_gb REAL DEFAULT 0,
+  expiry_days INTEGER DEFAULT 0,
   max_ips INTEGER DEFAULT 0
 );
 
--- Outbounds table
-CREATE TABLE IF NOT EXISTS outbounds (
+-- ============================================
+-- OUTBOUNDS TABLE
+-- ============================================
+DROP TABLE IF EXISTS outbounds;
+CREATE TABLE outbounds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  protocol TEXT,
-  settings TEXT,
-  tag TEXT,
+  name TEXT NOT NULL,
+  protocol TEXT DEFAULT 'freedom',
+  settings TEXT DEFAULT '{}',
+  tag TEXT UNIQUE NOT NULL,
   is_active INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Routing rules table
-CREATE TABLE IF NOT EXISTS routing_rules (
+-- ============================================
+-- ROUTING RULES TABLE
+-- ============================================
+DROP TABLE IF EXISTS routing_rules;
+CREATE TABLE routing_rules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  inbound_tag TEXT,
-  outbound_tag TEXT,
-  domain TEXT,
-  ip TEXT,
+  name TEXT NOT NULL,
+  inbound_tag TEXT NOT NULL,
+  outbound_tag TEXT NOT NULL,
+  domain TEXT DEFAULT '',
+  ip TEXT DEFAULT '',
   is_active INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Nodes table
-CREATE TABLE IF NOT EXISTS nodes (
+-- ============================================
+-- NODES TABLE - Remote servers
+-- ============================================
+DROP TABLE IF EXISTS nodes;
+CREATE TABLE nodes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  address TEXT,
-  port INTEGER,
-  api_key TEXT,
+  name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  port INTEGER DEFAULT 443,
+  api_key TEXT DEFAULT '',
   is_active INTEGER DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_check TIMESTAMP
 );
 
--- Clean IPs table
-CREATE TABLE IF NOT EXISTS clean_ips (
+-- ============================================
+-- CLEAN IPS TABLE - Additional IPs for subscription
+-- ============================================
+DROP TABLE IF EXISTS clean_ips;
+CREATE TABLE clean_ips (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  address TEXT,
+  address TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Settings table
-CREATE TABLE IF NOT EXISTS settings (
+-- ============================================
+-- SETTINGS TABLE - Panel configuration
+-- ============================================
+DROP TABLE IF EXISTS settings;
+CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Admins table
-CREATE TABLE IF NOT EXISTS admins (
+-- ============================================
+-- ADMINS TABLE - Panel administrators
+-- ============================================
+DROP TABLE IF EXISTS admins;
+CREATE TABLE admins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE,
-  password_hash TEXT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP,
   role TEXT DEFAULT 'admin'
 );
 
--- Traffic logs table
-CREATE TABLE IF NOT EXISTS traffic_logs (
+-- ============================================
+-- TRAFFIC LOGS TABLE
+-- ============================================
+DROP TABLE IF EXISTS traffic_logs;
+CREATE TABLE traffic_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT,
-  bytes INTEGER,
-  direction TEXT,
+  username TEXT NOT NULL,
+  bytes INTEGER DEFAULT 0,
+  direction TEXT DEFAULT 'down',
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- System events table
-CREATE TABLE IF NOT EXISTS system_events (
+-- ============================================
+-- SYSTEM EVENTS TABLE
+-- ============================================
+DROP TABLE IF EXISTS system_events;
+CREATE TABLE system_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  event_type TEXT,
+  event_type TEXT NOT NULL,
   message TEXT,
   data TEXT,
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
--- INDEXES
--- ============================================
-
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);
-CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
-CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
-CREATE INDEX IF NOT EXISTS idx_users_inbound ON users(inbound_id);
-
-CREATE INDEX IF NOT EXISTS idx_inbounds_name ON inbounds(name);
-CREATE INDEX IF NOT EXISTS idx_inbounds_active ON inbounds(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_outbounds_tag ON outbounds(tag);
-CREATE INDEX IF NOT EXISTS idx_outbounds_active ON outbounds(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_routing_active ON routing_rules(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_nodes_active ON nodes(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_traffic_logs_username ON traffic_logs(username);
-CREATE INDEX IF NOT EXISTS idx_traffic_logs_timestamp ON traffic_logs(timestamp);
-
-CREATE INDEX IF NOT EXISTS idx_system_events_timestamp ON system_events(timestamp);
-
--- ============================================
 -- DEFAULT DATA
 -- ============================================
-
--- Default settings
+-- Insert default settings
 INSERT OR IGNORE INTO settings (key, value) VALUES 
   ('panel_version', '3.4.1'),
   ('theme', 'dark'),
@@ -155,12 +160,16 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
   ('frag_len', '20-30'),
   ('frag_int', '1-2');
 
--- Default outbounds
-INSERT OR IGNORE INTO outbounds (name, protocol, settings, tag, is_active) VALUES 
-  ('Direct', 'freedom', '{"domainStrategy":"AsIs"}', 'direct', 1),
-  ('Block', 'blackhole', '{"response":{"type":"none"}}', 'block', 1);
+-- Insert default outbounds
+INSERT OR IGNORE INTO outbounds (name, protocol, settings, tag) VALUES 
+  ('Freedom', 'freedom', '{}', 'freedom'),
+  ('Blackhole', 'blackhole', '{}', 'blackhole'),
+  ('Proxy', 'vless', '{}', 'proxy');
 
--- Sample inbound (will be used as default)
-INSERT OR IGNORE INTO inbounds (name, uuid, protocol, port, path, host, is_active) 
-SELECT 'Default', '11111111-1111-1111-1111-111111111111', 'vless', 443, '/', 'example.com', 1
-WHERE NOT EXISTS (SELECT 1 FROM inbounds WHERE name = 'Default');
+-- Insert default inbound
+INSERT OR IGNORE INTO inbounds (name, uuid, protocol, port, path) VALUES 
+  ('Default', 'default-uuid-0000-0000-000000000000', 'vless', 443, '/');
+
+-- Insert default routing rule
+INSERT OR IGNORE INTO routing_rules (name, inbound_tag, outbound_tag) VALUES 
+  ('Default Route', 'default', 'freedom');
